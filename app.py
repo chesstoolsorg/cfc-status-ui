@@ -1,4 +1,7 @@
-from flask import Flask, render_template, request, send_file, flash, redirect, url_for
+from pathlib import Path
+
+from flask import Flask, render_template, request, send_file, flash, redirect, url_for, send_from_directory
+from jinja2 import ChoiceLoader, FileSystemLoader
 import os
 from werkzeug.utils import secure_filename
 import tempfile
@@ -11,7 +14,22 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_SHARED_UI = _REPO_ROOT / "shared" / "chesstools-ui"
+
 app = Flask(__name__)
+app.jinja_loader = ChoiceLoader(
+    [
+        FileSystemLoader(Path(__file__).resolve().parent / "templates"),
+        FileSystemLoader(_SHARED_UI / "templates"),
+    ]
+)
+
+
+@app.route("/chesstools-ui/<path:filename>")
+def chesstools_ui_assets(filename):
+    return send_from_directory(_SHARED_UI / "static", filename)
+
 
 # Configuration from environment variables
 app.secret_key = os.environ.get('SECRET_KEY', 'change-this-to-a-random-secret-key-for-production-213423jgasd')

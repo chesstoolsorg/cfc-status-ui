@@ -1,11 +1,14 @@
+# Build from repository root:
+#   docker build -f cfc-status-ui/Dockerfile .
 FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /app/cfc-status-ui
 
-COPY requirements.txt .
+COPY shared/chesstools-ui /app/shared/chesstools-ui
+COPY cfc-status-ui/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY cfc-status-ui .
 
 EXPOSE 8080
 
