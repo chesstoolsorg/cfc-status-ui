@@ -58,6 +58,26 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
 
+def safe_file_in_upload_folder(upload_folder: str, filename: str) -> Path | None:
+    """Resolve a single-segment filename inside upload_folder; None if traversal or invalid."""
+    if not filename or '\x00' in filename:
+        return None
+    if filename in ('.', '..'):
+        return None
+    for sep in (os.sep, '/', '\\'):
+        if sep and sep in filename:
+            return None
+    if os.altsep and os.altsep in filename:
+        return None
+    root = Path(upload_folder).resolve()
+    filepath = (root / filename).resolve()
+    try:
+        filepath.relative_to(root)
+    except ValueError:
+        return None
+    return filepath
+
+
 def allowed_file(filename):
     """Check if file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -353,11 +373,14 @@ def index():
 
 @app.route('/download/<filename>')
 def download_file(filename):
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    filepath = safe_file_in_upload_folder(app.config['UPLOAD_FOLDER'], filename)
+    if not filepath or not filepath.is_file():
+        flash('File not found.')
+        return redirect(url_for('index'))
     return send_file(
-        file_path,
+        filepath,
         as_attachment=True,
-        download_name=filename,
+        download_name=filepath.name,
         mimetype='text/csv'
     )
     
